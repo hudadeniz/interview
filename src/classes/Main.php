@@ -1,6 +1,6 @@
 <?php
 
-require_once 'home.php';
+require_once __DIR__ . '/home.php';
 
 class Main
 {
@@ -20,13 +20,17 @@ class Main
         require_once __DIR__ . "/../languages/{$lang}.php";
 
         $smarty = new Smarty\Smarty();
+
         $this->router = new \Bramus\Router\Router();
 
         $smarty->setTemplateDir('src/templates');
         $smarty->setCompileDir('/tmp');
 
         $smarty->assign('LANG', $lang);
-        $smarty->assign('langs', ['tr' => 'Türkçe', 'en' => 'English']);
+        $smarty->assign('langs', [
+            'tr' => 'Türkçe',
+            'en' => 'English'
+        ]);
     }
 
     public function run()
@@ -34,16 +38,17 @@ class Main
         global $smarty;
 
         $this->router->get('/', function () {
-    $home = new Home();
-    $home->index();
-});
+            $home = new Home();
+            $home->index();
+        });
 
-$this->router->post('/order', function () {
-    $home = new Home();
-    $home->createOrder();
-});
+        $this->router->post('/order', function () {
+            $home = new Home();
+            $home->createOrder();
+        });
 
-$this->router->run();
+        $this->router->run();
+
         $smarty->display('index.html');
     }
 }

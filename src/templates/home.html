@@ -20,55 +20,64 @@
 </div>
 {/if}
 
-<div class="table mt-3">
-    <table class="table table-striped table-hover">
-        <thead>
-            <tr>
-                <th>{$LANG.prd_name}</th>
-                <th>{$LANG.stock}</th>
-                <th>{$LANG.price}</th>
-                <th>{$LANG.quantity}</th>
-            </tr>
-        </thead>
+{if $selectedGame}
 
-        <tbody>
-            {foreach $products as $product}
-            <tr>
-                <td>{$product.name}</td>
-                <td>{$product.stock}</td>
-                <td>{$product.price}</td>
-                <td>
-                    <input type="number" class="form-control product-quantity" value="{$product.min_order}"
-                        min="{$product.min_order}" {if $product.max_order> 0}
-                    max="{$product.max_order}"
-                    {/if}
-                    data-product-code="{$product.id}"
-                    data-product-name="{$product.name}"
-                    >
-                </td>
-            </tr>
+<form id="orderForm">
 
-            {foreachelse}
+    <input type="hidden" name="game_code" value="{$selectedGame}">
 
-            <tr>
-                <td colspan="4" class="text-center">
-                    Ürün bulunamadı.
-                </td>
-            </tr>
+    <div class="table mt-3">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>{$LANG.prd_name}</th>
+                    <th>{$LANG.stock}</th>
+                    <th>{$LANG.price}</th>
+                    <th>{$LANG.quantity}</th>
+                </tr>
+            </thead>
 
-            {/foreach}
-        </tbody>
-    </table>
+            <tbody>
+                {foreach $products as $product}
+                <tr>
+                    <td>{$product.name}</td>
+                    <td>{$product.stock}</td>
+                    <td>{$product.price}</td>
+                    <td>
+                        <input type="number" class="form-control product-quantity" value="0" min="0" {if
+                            $product.max_order> 0}
+                        max="{$product.max_order}"
+                        {/if}
+                        data-product-code="{$product.id}"
+                        >
+                    </td>
+                </tr>
 
-    {if $products|@count > 0}
-    <button type="button" class="btn btn-primary" onclick="addProducts()">
-        {$LANG.buy}
-    </button>
-    {/if}
-</div>
+                {foreachelse}
 
-<!-- Sipariş sonucu modal -->
-<div class="modal fade" id="orderResultModal" tabindex="-1" aria-hidden="true">
+                <tr>
+                    <td colspan="4" class="text-center">
+                        Ürün bulunamadı.
+                    </td>
+                </tr>
+
+                {/foreach}
+            </tbody>
+        </table>
+
+        {if $products|@count > 0}
+        <button type="submit" class="btn btn-primary">
+            {$LANG.buy}
+        </button>
+        {/if}
+    </div>
+
+</form>
+
+{/if}
+
+
+<div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
 
@@ -79,8 +88,7 @@
                 </button>
             </div>
 
-            <div class="modal-body" id="orderResult">
-            </div>
+            <div class="modal-body" id="orderResult"></div>
 
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
@@ -92,45 +100,68 @@
     </div>
 </div>
 
+
 <script>
-    async function addProducts() {
-        const selectedGame = document.getElementById('games').value;
+    document.addEventListener('DOMContentLoaded', function () {
 
-        if (!selectedGame) {
-            alert('Lütfen bir oyun seçin.');
+        const form = document.getElementById('orderForm');
+
+        if (!form) {
             return;
         }
 
-        const inputs = document.querySelectorAll('.product-quantity');
-        const orders = [];
+        form.addEventListener('submit', async function (event) {
 
-        inputs.forEach(input => {
-            const quantity = parseInt(input.value, 10);
+            event.preventDefault();
 
-            if (quantity > 0) {
-                orders.push({
-                    productCode: input.dataset.productCode,
-                    productName: input.dataset.productName,
-                    quantity: quantity
-                });
+            const gameCode = form.querySelector('[name="game_code"]').value;
+            const quantityInputs = form.querySelectorAll('.product-quantity');
+
+            const orders = [];
+
+            quantityInputs.forEach(function (input) {
+
+                const quantity = parseInt(input.value, 10);
+
+                if (quantity > 0) {
+                    orders.push({
+                        product_code: input.dataset.productCode,
+                        quantity: quantity
+                    });
+                }
+
+            });
+
+            if (orders.length === 0) {
+                showOrderResult(
+                    '<div class="alert alert-warning">' +
+                    'En az bir ürün için miktar girmelisiniz.' +
+                    '</div>'
+                );
+
+                return;
             }
-        });
 
-        if (orders.length === 0) {
-            alert('Lütfen en az bir ürün seçin.');
-            return;
-        }
-
-        const results = [];
-
-        for (const order of orders) {
             const formData = new FormData();
 
-            formData.append('game_code', selectedGame);
-            formData.append('product_code', order.productCode);
-            formData.append('quantity', order.quantity);
+            formData.append('game_code', gameCode);
+
+            orders.forEach(function (order, index) {
+
+                formData.append(
+                    'orders[' + index + '][product_code]',
+                    order.product_code
+                );
+
+                formData.append(
+                    'orders[' + index + '][quantity]',
+                    order.quantity
+                );
+
+            });
 
             try {
+
                 const response = await fetch('/order', {
                     method: 'POST',
                     body: formData
@@ -138,45 +169,47 @@
 
                 const result = await response.json();
 
-                results.push({
-                    productName: order.productName,
-                    success: result.success,
-                    message: result.message
-                });
+                if (result.success) {
+
+                    let message = '<div class="alert alert-success">';
+                    message += result.message;
+                    message += '</div>';
+
+                    showOrderResult(message);
+
+                } else {
+
+                    showOrderResult(
+                        '<div class="alert alert-danger">' +
+                        result.message +
+                        '</div>'
+                    );
+
+                }
+
             } catch (error) {
-                results.push({
-                    productName: order.productName,
-                    success: false,
-                    message: 'Sipariş gönderilirken bir hata oluştu.'
-                });
+
+                showOrderResult(
+                    '<div class="alert alert-danger">' +
+                    'Sipariş oluşturulurken bir hata oluştu.' +
+                    '</div>'
+                );
+
             }
-        }
 
-        showOrderResults(results);
-    }
-
-    function showOrderResults(results) {
-        const resultContainer = document.getElementById('orderResult');
-
-        resultContainer.innerHTML = '';
-
-        results.forEach(result => {
-            const item = document.createElement('div');
-
-            item.className = result.success
-                ? 'alert alert-success'
-                : 'alert alert-danger';
-
-            item.textContent =
-                result.productName + ': ' + result.message;
-
-            resultContainer.appendChild(item);
         });
 
-        const modal = new bootstrap.Modal(
-            document.getElementById('orderResultModal')
-        );
 
-        modal.show();
-    }
+        function showOrderResult(message) {
+
+            document.getElementById('orderResult').innerHTML = message;
+
+            const modalElement = document.getElementById('orderModal');
+
+            const modal = new bootstrap.Modal(modalElement);
+
+            modal.show();
+        }
+
+    });
 </script>
