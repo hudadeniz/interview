@@ -38,20 +38,24 @@
                 <td>{$product.stock}</td>
                 <td>{$product.price}</td>
                 <td>
-                    <input name="quantity" type="number" class="form-control" value="{$product.min_order}"
+                    <input type="number" class="form-control product-quantity" value="{$product.min_order}"
                         min="{$product.min_order}" {if $product.max_order> 0}
                     max="{$product.max_order}"
                     {/if}
-                    id="quantity_{$product.id}"
+                    data-product-code="{$product.id}"
+                    data-product-name="{$product.name}"
                     >
                 </td>
             </tr>
+
             {foreachelse}
+
             <tr>
                 <td colspan="4" class="text-center">
                     Ürün bulunamadı.
                 </td>
             </tr>
+
             {/foreach}
         </tbody>
     </table>
@@ -62,3 +66,117 @@
     </button>
     {/if}
 </div>
+
+<!-- Sipariş sonucu modal -->
+<div class="modal fade" id="orderResultModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">Sipariş Sonucu</h5>
+
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat">
+                </button>
+            </div>
+
+            <div class="modal-body" id="orderResult">
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Kapat
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    async function addProducts() {
+        const selectedGame = document.getElementById('games').value;
+
+        if (!selectedGame) {
+            alert('Lütfen bir oyun seçin.');
+            return;
+        }
+
+        const inputs = document.querySelectorAll('.product-quantity');
+        const orders = [];
+
+        inputs.forEach(input => {
+            const quantity = parseInt(input.value, 10);
+
+            if (quantity > 0) {
+                orders.push({
+                    productCode: input.dataset.productCode,
+                    productName: input.dataset.productName,
+                    quantity: quantity
+                });
+            }
+        });
+
+        if (orders.length === 0) {
+            alert('Lütfen en az bir ürün seçin.');
+            return;
+        }
+
+        const results = [];
+
+        for (const order of orders) {
+            const formData = new FormData();
+
+            formData.append('game_code', selectedGame);
+            formData.append('product_code', order.productCode);
+            formData.append('quantity', order.quantity);
+
+            try {
+                const response = await fetch('/order', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                results.push({
+                    productName: order.productName,
+                    success: result.success,
+                    message: result.message
+                });
+            } catch (error) {
+                results.push({
+                    productName: order.productName,
+                    success: false,
+                    message: 'Sipariş gönderilirken bir hata oluştu.'
+                });
+            }
+        }
+
+        showOrderResults(results);
+    }
+
+    function showOrderResults(results) {
+        const resultContainer = document.getElementById('orderResult');
+
+        resultContainer.innerHTML = '';
+
+        results.forEach(result => {
+            const item = document.createElement('div');
+
+            item.className = result.success
+                ? 'alert alert-success'
+                : 'alert alert-danger';
+
+            item.textContent =
+                result.productName + ': ' + result.message;
+
+            resultContainer.appendChild(item);
+        });
+
+        const modal = new bootstrap.Modal(
+            document.getElementById('orderResultModal')
+        );
+
+        modal.show();
+    }
+</script>

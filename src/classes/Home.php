@@ -46,4 +46,45 @@ class Home
         $smarty->assign('selectedGame', $selectedGame);
         $smarty->assign('template', 'home.html');
     }
+    public function createOrder()
+{
+    header('Content-Type: application/json; charset=utf-8');
+
+    try {
+        $gameCode = trim($_POST['game_code'] ?? '');
+        $productCode = trim($_POST['product_code'] ?? '');
+        $quantity = (int) ($_POST['quantity'] ?? 0);
+        $character = trim($_POST['character'] ?? '');
+
+        if ($gameCode === '' || $productCode === '') {
+            throw new InvalidArgumentException('Oyun ve ürün seçilmelidir.');
+        }
+
+        if ($quantity < 1) {
+            throw new InvalidArgumentException('Geçerli bir adet girilmelidir.');
+        }
+
+        $api = new TurkpinApi();
+
+        $response = $api->createOrder(
+            $gameCode,
+            $productCode,
+            $quantity,
+            $character !== '' ? $character : null
+        );
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Sipariş başarıyla oluşturuldu.',
+            'data' => json_decode(json_encode($response), true)
+        ]);
+    } catch (Throwable $e) {
+        http_response_code(400);
+
+        echo json_encode([
+            'success' => false,
+            'message' => $e->getMessage()
+        ]);
+    }
+}
 }

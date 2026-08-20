@@ -34,11 +34,16 @@ class Main
         global $smarty;
 
         $this->router->get('/', function () {
-            $home = new Home();
-            $home->index();
-        });
+    $home = new Home();
+    $home->index();
+});
 
-        $this->router->run();
+$this->router->post('/order', function () {
+    $home = new Home();
+    $home->createOrder();
+});
+
+$this->router->run();
         $smarty->display('index.html');
     }
 }

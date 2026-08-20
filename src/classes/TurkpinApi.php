@@ -116,30 +116,4 @@ class TurkpinApi
 
         return $this->request($params);
     }
-
-    public function getOrderStatus(string $orderNumber): SimpleXMLElement
-    {
-        return $this->request([
-            'cmd' => 'siparisDurumu',
-            'siparisNo' => $orderNumber,
-        ]);
-    }
-
-    public function getOrders(
-        string $startDate,
-        string $endDate
-    ): SimpleXMLElement {
-        return $this->request([
-            'cmd' => 'siparisListesi',
-            'baslangicTarihi' => $startDate,
-            'bitisTarihi' => $endDate,
-        ]);
-    }
-
-    public function getBalance(): SimpleXMLElement
-    {
-        return $this->request([
-            'cmd' => 'balance'
-        ]);
-    }
 }
