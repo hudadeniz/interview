@@ -18,23 +18,25 @@ class Home
 
             $response = $api->getGames();
 
-            foreach ($response->params->oyunlar->oyun as $game) {
-                $games[(string) $game->oyunKodu] = (string) $game->oyunAdi;
+            foreach ($response->params->oyunListesi->oyun as $game) {
+                $games[(string) $game->id] = (string) $game->name;
             }
 
             if ($selectedGame !== null && $selectedGame !== '') {
                 $productResponse = $api->getProducts($selectedGame);
 
-                foreach ($productResponse->params->urunler->urun as $product) {
+                foreach ($productResponse->params->epinUrunListesi->urun as $product) {
                     $products[] = [
-                        'id' => (string) $product->urunKodu,
-                        'name' => (string) $product->urunAdi,
-                        'stock' => (string) $product->stok,
+                        'id' => (string) $product->id,
+                        'name' => (string) $product->name,
+                        'stock' => (string) $product->stock,
                         'min_order' => (string) $product->min_order,
                         'max_order' => (string) $product->max_order,
-                        'price' => (string) $product->fiyat,
+                        'price' => (string) $product->price,
+                        'pre_order' => (string) $product->pre_order,
                     ];
                 }
+
             }
         } catch (Throwable $e) {
             $error = $e->getMessage();

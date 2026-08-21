@@ -44,7 +44,7 @@ class TurkpinApi
         if ($response === false) {
             $error = curl_error($ch);
 
-        throw new RuntimeException('API bağlantı hatası: ' . $error);
+            throw new RuntimeException('API bağlantı hatası: ' . $error);
         }
 
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

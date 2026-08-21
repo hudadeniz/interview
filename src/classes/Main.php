@@ -5,7 +5,6 @@ require_once __DIR__ . '/home.php';
 class Main
 {
     public $router;
-
     public function __construct()
     {
         global $lang, $smarty;
